@@ -8,6 +8,12 @@ These guidelines are the same across both `goal-slot-web` and
 both repositories against this document, so understanding it once
 covers your contribution flow everywhere.
 
+**Brand new to open source or to this codebase?** Start with
+[SETUP.md](SETUP.md). It walks through forking, cloning, installing
+Postgres, configuring environment variables, and running the API for
+the first time. Once the API is running locally, come back here to
+learn the contribution flow.
+
 ---
 
 ## Claim-before-you-code (the only rule we will reject PRs over)
