@@ -1,16 +1,13 @@
-import { Controller, Post, Body, Get, UseGuards, HttpCode, HttpStatus, Query, Req, Res } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, SSOLoginDto, SendOTPDto, VerifyOTPDto, ForgotPasswordDto, ResetPasswordDto, SendChangePasswordOTPDto, ChangePasswordDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { AuthGuard } from '@nestjs/passport';
-import { ConfigService } from '@nestjs/config';
-import { Request, Response } from 'express';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService, private configService: ConfigService) {}
+  constructor(private authService: AuthService) {}
 
   @Get('check-email')
   @ApiOperation({ summary: 'Check if email is already registered' })
@@ -87,37 +84,12 @@ export class AuthController {
     return this.authService.ssoLogin(dto);
   }
 
-  @Get('google')
-  @UseGuards(AuthGuard('google'))
-  async googleAuth() {
-    // initiates Google OAuth flow
-  }
-
-  @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleAuthCallback(@Req() req: Request & any, @Res() res: Response) {
-    try {
-      const profile = req.user;
-      const result = await this.authService.handleGoogleLogin(profile);
-
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3010';
-      const redirectUrl = `${frontendUrl.replace(/\/$/, '')}/auth/callback?token=${encodeURIComponent(
-        result.accessToken,
-      )}&refresh=${encodeURIComponent(result.refreshToken)}`;
-
-      return res.redirect(redirectUrl);
-    } catch (err) {
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3010';
-      return res.redirect(`${frontendUrl.replace(/\/$/, '')}/login?error=oauth_failed`);
-    }
-  }
-
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Current user data' })
-  async getProfile(@Req() req: any) {
+  async getProfile(@Request() req: any) {
     return this.authService.validateUser(req.user.sub);
   }
 
@@ -126,7 +98,7 @@ export class AuthController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
-  async refreshToken(@Req() req: any) {
+  async refreshToken(@Request() req: any) {
     return this.authService.refreshToken(req.user.sub);
   }
 
@@ -138,7 +110,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'OTP sent successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - SSO user or rate limit' })
   @ApiResponse({ status: 401, description: 'Invalid current password' })
-  async sendChangePasswordOTP(@Req() req: any, @Body() dto: SendChangePasswordOTPDto) {
+  async sendChangePasswordOTP(@Request() req: any, @Body() dto: SendChangePasswordOTPDto) {
     return this.authService.sendChangePasswordOTP(req.user.sub, dto.currentPassword);
   }
 
@@ -150,7 +122,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - SSO user or invalid OTP' })
   @ApiResponse({ status: 401, description: 'Invalid current password' })
-  async changePassword(@Req() req: any, @Body() dto: ChangePasswordDto) {
+  async changePassword(@Request() req: any, @Body() dto: ChangePasswordDto) {
     return this.authService.changePassword(req.user.sub, dto.currentPassword, dto.otp, dto.newPassword);
   }
 }
